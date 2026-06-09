@@ -1,0 +1,23 @@
+# Web framework
+django>=4.2
+
+# PDF processing
+pymupdf>=1.24.0
+pillow>=10.0.0
+
+# Embeddings (CPU)
+sentence-transformers>=3.0.0
+
+# Vector DB (local)
+chromadb>=0.5.0
+
+# VLM: Qwen2-VL-7B 4-bit
+transformers>=4.45.0
+torch>=2.1.0
+accelerate>=0.34.0
+bitsandbytes>=0.43.3
+einops>=0.8.0
+timm>=1.0.0
+
+# LLM client (Ollama)
+ollama>=0.3.0

@@ -1,0 +1,25 @@
+# Секреты
+.env
+
+# Данные (большие файлы)
+chroma_db/
+media/
+vlm_cache.json
+*.pdf
+
+# Django
+db.sqlite3
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+.claude/
