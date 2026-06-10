@@ -6,46 +6,99 @@
 <title>Geo RAG · Геологический анализ</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script>
-  tailwind.config = {
-    theme: { extend: { colors: { 'slate-750': '#1e293b' } } }
-  }
-</script>
 {% load static %}
 <style>
-  .prose-dark h1,h2,h3 { color: #e2e8f0; margin-bottom:.5rem; }
-  .prose-dark p        { color: #cbd5e1; margin-bottom:.75rem; }
-  .prose-dark ul,ol    { color: #cbd5e1; padding-left:1.5rem; margin-bottom:.75rem; }
+  /* ── Prose ─────────────────────────────────────────────── */
+  .prose-dark h1,h2,h3 { color:#e2e8f0; margin-bottom:.5rem; }
+  .prose-dark p        { color:#cbd5e1; margin-bottom:.75rem; }
+  .prose-dark ul,ol    { color:#cbd5e1; padding-left:1.5rem; margin-bottom:.75rem; }
   .prose-dark li       { margin-bottom:.25rem; }
-  .prose-dark strong   { color: #f1f5f9; }
+  .prose-dark strong   { color:#f1f5f9; }
   .prose-dark code     { background:#334155; color:#93c5fd; padding:1px 4px; border-radius:3px; font-size:.85em; }
   .prose-dark pre      { background:#0f172a; padding:.75rem 1rem; border-radius:.5rem; overflow-x:auto; }
-  .spinner { animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  ::-webkit-scrollbar       { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+  /* ── Кликабельные цитаты ────────────────────────────────── */
+  .geo-cite {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: rgba(59,130,246,.18); border: 1px solid rgba(59,130,246,.4);
+    color: #93c5fd; border-radius: 4px; padding: 1px 6px;
+    font-size: .78em; font-weight: 600; cursor: pointer;
+    transition: background .15s;
+  }
+  .geo-cite:hover { background: rgba(59,130,246,.35); }
+
+  /* ── Пайплайн-шаги ──────────────────────────────────────── */
+  .pip-step { display:flex; align-items:center; gap:6px; font-size:.72rem; color:#475569; }
+  .pip-step.done  { color:#22c55e; }
+  .pip-step.active{ color:#60a5fa; }
+  .pip-dot { width:8px; height:8px; border-radius:50%; background:currentColor; flex-shrink:0; }
+  .pip-step.active .pip-dot { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── Mode btn ──────────────────────────────────────────── */
+  .mode-btn { transition:all .15s; }
+  .mode-btn.active { background:#2563eb; color:#fff; border-color:#3b82f6; }
+
+  /* ── Graph ─────────────────────────────────────────────── */
+  #graph-canvas { background:#0f172a; border-radius:.75rem; display:block; }
+
+  /* ── GraphRAG Trace ─────────────────────────────────────── */
+  .trace-step {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 6px 8px; border-radius: 6px;
+    border-left: 2px solid transparent;
+    transition: all .2s;
+  }
+  .trace-step.ts-done  { border-color: #22c55e; background: rgba(34,197,94,.06); }
+  .trace-step.ts-warn  { border-color: #f59e0b; background: rgba(245,158,11,.06); }
+  .trace-step.ts-info  { border-color: #3b82f6; background: rgba(59,130,246,.06); }
+  .trace-icon { font-size: .9rem; flex-shrink: 0; margin-top: 1px; }
+  .trace-title { font-size: .68rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; }
+  .trace-val   { font-size: .75rem; color: #cbd5e1; margin-top: 1px; }
+  .trace-tag {
+    display: inline-block; font-size: .65rem; padding: 1px 5px;
+    border-radius: 3px; font-weight: 600; margin: 1px 2px 1px 0;
+  }
+  .tag-пласт         { background:#1e3a8a; color:#93c5fd; }
+  .tag-свита         { background:#581c87; color:#d8b4fe; }
+  .tag-горизонт      { background:#78350f; color:#fcd34d; }
+  .tag-месторождение { background:#14532d; color:#86efac; }
+  .tag-скважина      { background:#1c1917; color:#d6d3d1; }
+  .tag-default       { background:#1e293b; color:#94a3b8; }
+
+  /* ── Misc ──────────────────────────────────────────────── */
+  .spinner { animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#475569; border-radius:3px; }
 </style>
 </head>
 
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden">
 
-<!-- ═══ Шапка ═══════════════════════════════════════════════════════════════ -->
+<!-- ═══ Шапка ════════════════════════════════════════════════════════════════ -->
 <header class="bg-slate-800 border-b border-slate-700 px-5 py-3 flex items-center justify-between flex-shrink-0">
   <div class="flex items-center gap-3">
     <span class="text-3xl">🛢</span>
     <div>
       <h1 class="font-bold text-base leading-tight">Geo RAG</h1>
-      <p class="text-xs text-slate-400">Qwen2-VL-7B · bge-base · Ollama · ChromaDB</p>
+      <p class="text-xs text-slate-400">Qwen3-VL · jina-v3 · ChromaDB · NetworkX</p>
     </div>
   </div>
-  <div id="global-stats" class="text-xs text-slate-500"></div>
+  <div class="flex items-center gap-4">
+    <div id="global-stats" class="text-xs text-slate-500"></div>
+    <div id="graph-stats-badge" class="hidden text-xs">
+      <span class="text-purple-400">⬡</span>
+      <span id="graph-nodes" class="text-slate-400">0</span> узлов
+    </div>
+  </div>
 </header>
 
-<!-- ═══ Основной layout ══════════════════════════════════════════════════════ -->
+<!-- ═══ Layout ═══════════════════════════════════════════════════════════════ -->
 <div class="flex flex-1 overflow-hidden">
 
-  <!-- ── Сайдбар ─────────────────────────────────────────────────────────── -->
+  <!-- ── Сайдбар ──────────────────────────────────────────────────────────── -->
   <aside class="w-72 bg-slate-800 border-r border-slate-700 flex flex-col flex-shrink-0">
 
     <!-- Зона загрузки -->
@@ -55,12 +108,10 @@
                   hover:border-blue-500 hover:bg-slate-700/50 transition-all select-none"
            onclick="document.getElementById('file-input').click()">
         <div class="text-2xl mb-1">📂</div>
-        <p class="text-xs text-slate-400 font-medium">Перетащите PDF сюда</p>
-        <p class="text-xs text-slate-500 mt-0.5">или нажмите для выбора</p>
-        <input type="file" id="file-input" accept=".pdf" multiple class="hidden">
+        <p class="text-xs text-slate-400 font-medium">Перетащите документ сюда</p>
+        <p class="text-xs text-slate-500 mt-0.5">PDF · DOCX · DJVU</p>
+        <input type="file" id="file-input" accept=".pdf,.docx,.doc,.djvu" multiple class="hidden">
       </div>
-
-      <!-- Прогресс загрузки -->
       <div id="upload-progress" class="hidden mt-2">
         <div class="bg-slate-600 rounded-full h-1.5">
           <div id="upload-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" style="width:0%"></div>
@@ -77,61 +128,68 @@
       </div>
     </div>
 
-    <!-- Фильтр -->
-    <div class="p-3 border-t border-slate-700">
-      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Искать в</p>
-      <div id="filter-list" class="space-y-1">
-        <label class="flex items-center gap-2 cursor-pointer py-0.5">
-          <input type="radio" name="filter" value="" checked onchange="setFilter('')"
-                 class="accent-blue-500">
-          <span class="text-sm text-slate-300">Все документы</span>
-        </label>
+    <!-- Фильтр + граф -->
+    <div class="p-3 border-t border-slate-700 space-y-3">
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Искать в</p>
+        <div id="filter-list" class="space-y-1">
+          <label class="flex items-center gap-2 cursor-pointer py-0.5">
+            <input type="radio" name="filter" value="" checked onchange="setFilter('')" class="accent-blue-500">
+            <span class="text-sm text-slate-300">Все документы</span>
+          </label>
+        </div>
+      </div>
+      <div class="border-t border-slate-700 pt-3">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Граф знаний</p>
+        <div id="graph-info" class="text-xs text-slate-600 mb-2">Загрузка…</div>
+        <button onclick="rebuildGraph()"
+                class="w-full text-xs bg-slate-700 hover:bg-slate-600 border border-slate-600
+                       rounded-lg px-2 py-1.5 text-slate-300 transition-colors">
+          ↻ Перестроить граф
+        </button>
       </div>
     </div>
   </aside>
 
-  <!-- ── Чат ─────────────────────────────────────────────────────────────── -->
+  <!-- ── Чат ──────────────────────────────────────────────────────────────── -->
   <main class="flex-1 flex flex-col overflow-hidden bg-slate-900">
 
-    <!-- Сообщения -->
     <div id="messages" class="flex-1 overflow-y-auto px-6 py-6 space-y-5">
       <!-- Приветствие -->
       <div id="welcome" class="flex flex-col items-center justify-center h-full text-center py-16">
         <div class="text-6xl mb-5">🪨</div>
         <h2 class="text-2xl font-semibold text-slate-300 mb-2">Геологический RAG</h2>
         <p class="text-slate-500 text-sm max-w-sm">
-          Загрузите PDF-документы слева, дождитесь индексации и задавайте вопросы по содержимому книг, включая изображения
+          Загрузите PDF, дождитесь индексации и задавайте вопросы.
+          Цитаты в ответе кликабельны — откроют страницу источника.
         </p>
         <div class="mt-6 flex flex-wrap gap-2 justify-center">
-          <button class="quick-q bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs text-slate-300 transition-colors">
-            Что такое геохимия нефти?
-          </button>
-          <button class="quick-q bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs text-slate-300 transition-colors">
-            Опиши нефтяные ловушки
-          </button>
-          <button class="quick-q bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs text-slate-300 transition-colors">
-            Какие карты есть в книгах?
-          </button>
-          <button class="quick-q bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs text-slate-300 transition-colors">
-            Объясни миграцию углеводородов
-          </button>
+          <button class="quick-q bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs text-slate-300 transition-colors">Что такое геохимия нефти?</button>
+          <button class="quick-q bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs text-slate-300 transition-colors">Опиши нефтяные ловушки</button>
+          <button class="quick-q bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs text-slate-300 transition-colors">Структурная карта Уренгоя</button>
+          <button class="quick-q bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-xs text-slate-300 transition-colors">Объясни миграцию углеводородов</button>
         </div>
       </div>
     </div>
 
-    <!-- Поле ввода -->
+    <!-- Ввод + режим -->
     <div class="border-t border-slate-700 bg-slate-800/50 px-5 py-4">
+      <div class="flex gap-1.5 mb-3">
+        <button id="mode-rag"      class="mode-btn text-xs border border-slate-600 rounded-lg px-3 py-1 text-slate-400" onclick="setMode('rag')">🔍 RAG</button>
+        <button id="mode-hybrid"   class="mode-btn active text-xs border border-slate-600 rounded-lg px-3 py-1"         onclick="setMode('hybrid')">⚡ Гибрид</button>
+        <button id="mode-graphrag" class="mode-btn text-xs border border-slate-600 rounded-lg px-3 py-1 text-slate-400" onclick="setMode('graphrag')">⬡ GraphRAG</button>
+        <span id="mode-hint" class="ml-auto text-xs text-slate-600 self-center">vector + BM25</span>
+      </div>
       <div class="flex gap-3 items-end">
-        <div class="flex-1 relative">
+        <div class="flex-1">
           <textarea id="query-input"
                     class="w-full bg-slate-700 border border-slate-600 rounded-xl px-4 py-3 text-sm
                            resize-none focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30
                            transition-colors placeholder-slate-500 min-h-[48px] max-h-[120px]"
-                    placeholder="Задайте вопрос по геологическим документам…"
-                    rows="1"></textarea>
+                    placeholder="Задайте вопрос по геологическим документам…" rows="1"></textarea>
         </div>
         <button id="send-btn"
-                class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed
+                class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-40
                        h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
                 onclick="sendMessage()">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
@@ -142,23 +200,45 @@
       <p class="text-xs text-slate-600 mt-2">Enter — отправить · Shift+Enter — новая строка</p>
     </div>
   </main>
+
+  <!-- ── Панель графа ──────────────────────────────────────────────────────── -->
+  <div id="graph-panel" class="hidden w-96 bg-slate-800 border-l border-slate-700 flex-col overflow-hidden">
+    <!-- Header -->
+    <div class="px-3 py-2 border-b border-slate-700 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center gap-2">
+        <span class="text-purple-400 text-sm">⬡</span>
+        <span class="text-xs font-semibold text-slate-300">GraphRAG · Путь к ответу</span>
+      </div>
+      <button onclick="closeGraphPanel()" class="text-slate-600 hover:text-slate-300 text-lg leading-none">✕</button>
+    </div>
+
+    <!-- Trace steps -->
+    <div id="graph-trace" class="px-3 py-2 border-b border-slate-700 space-y-1 flex-shrink-0 overflow-y-auto max-h-52">
+      <p class="text-xs text-slate-600 italic">Запустите GraphRAG для отображения трассировки</p>
+    </div>
+
+    <!-- Canvas -->
+    <div class="p-2 flex-1 overflow-hidden flex flex-col gap-1.5 min-h-0">
+      <p class="text-xs text-slate-600 font-semibold uppercase tracking-wide flex-shrink-0">Подграф сущностей</p>
+      <canvas id="graph-canvas" class="w-full flex-1 min-h-0"></canvas>
+      <div id="graph-legend" class="flex flex-wrap gap-1.5 text-xs flex-shrink-0"></div>
+    </div>
+  </div>
+
 </div>
 
-<!-- ═══ Модалка изображения ══════════════════════════════════════════════════ -->
+<!-- ═══ Модалка: превью страницы ═════════════════════════════════════════════ -->
 <div id="img-modal"
      class="fixed inset-0 bg-black/85 hidden items-center justify-center z-50 p-4"
      onclick="closeModal()">
   <div class="max-w-5xl w-full" onclick="event.stopPropagation()">
     <img id="modal-img" src="" class="w-full rounded-xl shadow-2xl" alt="">
     <p id="modal-caption" class="text-center text-slate-400 mt-3 text-sm"></p>
-    <button class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl"
-            onclick="closeModal()">✕</button>
+    <button class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl" onclick="closeModal()">✕</button>
   </div>
 </div>
 
-<script>
-  const CSRF = '{{ csrf_token }}';
-</script>
+<script>const CSRF = '{{ csrf_token }}';</script>
 <script src="{% static 'js/app.js' %}"></script>
 </body>
 </html>

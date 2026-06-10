@@ -2,6 +2,12 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / '.env')
+except ImportError:
+    pass
+
 SECRET_KEY = 'geo-rag-hackathon-secret-key-change-in-production'
 DEBUG = True
 ALLOWED_HOSTS = ['*']

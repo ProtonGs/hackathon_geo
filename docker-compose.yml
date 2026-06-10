@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./media:/app/media
+      - ./chroma_db:/app/chroma_db
+      - ./vlm_cache.json:/app/vlm_cache.json
+      - ./knowledge_graph.json:/app/knowledge_graph.json
+      - ./db.sqlite3:/app/db.sqlite3
+    env_file:
+      - .env
+    restart: unless-stopped
