@@ -89,6 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshGraphStats();
   loadMetrics();
 
+  // Attach canvas events ONCE — handlers use global graphNodes/dragNode
+  _attachCanvasEventsOnce();
+
   document.querySelectorAll('.quick-q').forEach(btn => {
     btn.addEventListener('click', () => {
       document.getElementById('query-input').value = btn.textContent;
@@ -624,7 +627,7 @@ function openGraphPanel(data) {
   panel.classList.remove('hidden');
   panel.classList.add('flex');
 
-  graphNodes = (data.nodes || []).map(n => ({ ...n, x: 0, y: 0, vx: 0, vy: 0, revealed: false }));
+  graphNodes = (data.nodes || []).map(n => ({ ...n, x: 0, y: 0, vx: 0, vy: 0 }));
   graphEdges = data.edges || [];
 
   renderLegend(graphNodes);
@@ -632,12 +635,15 @@ function openGraphPanel(data) {
 
   if (graphAnim) { cancelAnimationFrame(graphAnim); graphAnim = null; }
 
-  requestAnimationFrame(() => {
+  // Double rAF: first frame makes panel visible, second measures real dimensions
+  requestAnimationFrame(() => requestAnimationFrame(() => {
     const canvas = document.getElementById('graph-canvas');
-    canvas.width  = panel.offsetWidth - 16;
-    canvas.height = Math.max(panel.offsetHeight - 260, 160);
+    const w = panel.offsetWidth  - 16;
+    const h = Math.max(panel.offsetHeight - 270, 140);
+    canvas.width  = w;
+    canvas.height = h;
 
-    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const cx = w / 2, cy = h / 2;
     graphNodes.forEach((n, i) => {
       const angle = (i / Math.max(graphNodes.length, 1)) * 2 * Math.PI;
       const r = Math.min(cx, cy) * 0.65;
@@ -645,9 +651,8 @@ function openGraphPanel(data) {
       n.y = cy + Math.sin(angle) * r + (Math.random() - .5) * 20;
     });
 
-    attachCanvasEvents(canvas);
     runForce(canvas);
-  });
+  }));
 }
 
 // ── GraphRAG Trace panel ───────────────────────────────────────────────────
@@ -687,6 +692,7 @@ function renderGraphTrace(data) {
   const vectorBadge = fromV > 0
     ? ` + <span class="text-blue-400">${fromV}</span> fallback` : '';
 
+  el.scrollTop = 0;
   el.innerHTML = `
     <div class="trace-step ts-info">
       <span class="trace-icon">🔍</span>
@@ -901,11 +907,10 @@ function draw(canvas, byId, iter) {
   }
 }
 
-function attachCanvasEvents(canvas) {
-  // Remove old listeners by cloning
-  const newCanvas = canvas.cloneNode(true);
-  canvas.parentNode.replaceChild(newCanvas, canvas);
+function _attachCanvasEventsOnce() {
   const c = document.getElementById('graph-canvas');
+  if (!c || c._geoEventsOk) return;
+  c._geoEventsOk = true;
 
   c.addEventListener('mousedown', e => {
     const rect = c.getBoundingClientRect();
